@@ -2,7 +2,7 @@
 #'
 #' @description
 #' * `pr_init("name")` creates a new local branch for a PR.
-#' * `pr_create(number)` downloads a remote PR so you can edit locally.
+#' * `pr_fetch(number)` downloads a remote PR so you can edit locally.
 #' * `pr_push()` pushes local changes to GitHub, after checking that there
 #'    aren't any remote changes you need to retrieve first. On first use,
 #'    it will prompt you to create a PR on GitHub.
@@ -44,6 +44,9 @@ pr_init <- function(branch) {
 #' @rdname pr_init
 #' @param number Number of PR to fetch.
 pr_fetch <- function(number) {
+  check_branch_current("master")
+  check_uncommitted_changes()
+
   ui_done("Retrieving PR data")
   pr <- gh::gh("GET /repos/:owner/:repo/pulls/:number",
     owner = github_owner(),
@@ -63,12 +66,12 @@ pr_fetch <- function(number) {
 
   if (!user %in% git2r::remotes(git_repo())) {
     ui_done("Adding remote {ui_value(remote)}")
-    git2r::remote_add(git_repo(), user, pr$head$repo$git_url)
+    git2r::remote_add(git_repo(), user, pr$head$repo$ssh_url)
   }
 
   if (!git_branch_exists(branch)) {
     ui_done("Creating local branch {ui_value(branch)}")
-    git2r::fetch(git_repo(), user, refspec = remote, verbose = FALSE)
+    git2r::fetch(git_repo(), user, refspec = ref, verbose = FALSE)
     git_branch_create(branch, remote)
     git_branch_track(branch, user, ref)
   }
